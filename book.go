@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"path"
 	"strings"
 
 	"github.com/bmaupin/go-epub"
+	"github.com/skip2/go-qrcode"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/html"
@@ -19,6 +21,7 @@ func GenerateEpub(ctx context.Context, a article, outdir string) (string, error)
 	e := epub.NewEpub(a.Title)
 	content := AddImages(ctx, a.Content, e)
 	e.AddSection(fmt.Sprintf("<h1>%s</h1>", a.Title)+content, a.Title, "", "")
+	AddQRCode(ctx, a.URL, e)
 	err = e.Write(filepath)
 	if err != nil {
 		return "", err
@@ -63,4 +66,24 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 	var b strings.Builder
 	html.Render(&b, doc)
 	return b.String()
+}
+
+func AddQRCode(ctx context.Context, url string, e *epub.Epub) {
+	span := trace.SpanFromContext(ctx)
+	png, err := qrcode.Encode(url, qrcode.Medium, -1)
+	if err != nil {
+		span.RecordError(err)
+		return
+	}
+	b64 := make([]byte, base64.StdEncoding.EncodedLen(len(png)))
+	base64.StdEncoding.Encode(b64, png)
+	e.AddSection(
+		fmt.Sprintf(`
+    <center>
+      <p><img src="data:image/png;base64,%s" />
+      <p><a href="%s">%s</a>
+    </center>`, string(b64), url, url),
+		"Source",
+		"", "",
+	)
 }
