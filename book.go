@@ -48,11 +48,10 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 						continue
 					}
 					n.Attr[i] = html.Attribute{Namespace: a.Namespace, Key: a.Key, Val: epubSrc}
-					span.AddEvent("ImageAdded", trace.WithAttributes(
+					span.AddEvent(fmt.Sprintf("Added image %s", epubSrc), trace.WithAttributes(
 						attribute.String("src.original", originalSrc),
 						attribute.String("src.cleaned", cleanedSrc),
 						attribute.String("src.epub", epubSrc)))
-					span.End()
 				}
 			}
 		}
