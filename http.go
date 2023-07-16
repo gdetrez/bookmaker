@@ -87,20 +87,32 @@ func SendArticle(ctx context.Context, a article) error {
 }
 
 func SendToReMarkable(ctx context.Context, path string) error {
-	ctx, span := tracer.Start(ctx, "rmapi-put")
+	err := rmapi(ctx, "refresh")
+	if err != nil {
+		return err
+	}
+	err = rmapi(ctx, "put", path, "/@Inbox")
+	if err != nil {
+		return err
+	}
+	log.Printf("File sent to reMarkable cloud: %s", path)
+	return nil
+}
+
+func rmapi(ctx context.Context, args ...string) error {
+	ctx, span := tracer.Start(ctx, "rmapi")
 	defer span.End()
 	command := "rmapi"
-	args := []string{"put", path, "/@Inbox"}
 	span.SetAttributes(
 		attribute.String("command", command),
 		attribute.StringSlice("args", args))
 	cmd := exec.CommandContext(ctx, command, args...)
+  log.Printf("Running: %v", cmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "")
 		return fmt.Errorf("rmapi: %w: %s", err, output)
 	}
-	log.Printf("File sent to reMarkable cloud: %s", path)
 	return nil
 }
