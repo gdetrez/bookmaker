@@ -1,8 +1,4 @@
 #!/bin/bash
-
 set -eux
-
-image="ghcr.io/gdetrez/bookmaker"
-
-podman build -t "$image" .
-podman push "$image"
+export KO_DOCKER_REPO=ghcr.io/gdetrez/bookmaker
+ko build --bare
