@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmaker</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+    <style>
+      body {
+        max-width: 40em;
+        margin: auto;
+      }
+      details {
+        padding-left: 2em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+        <h1>📚 Bookmaker</h1>
+        {{ range .Catalog }}
+        <details>
+          <summary>{{if .Err}}❌{{end}} {{ .Book.Title }}</summary>
+          <dl>
+            <dt>Title <dd>{{ .Book.Title}}
+            {{if .File}}<dt>File<dd><a href="/epub/{{ .Id }}">📘 {{.File}}</a>{{end}}
+            {{if .Err}}<dt style="color:red">Error<dd style="color:red">{{.Err}}{{end}}
+            <dt>Log<dd><pre>{{ .Log }}</pre>
+          </dl>
+        </details>
+        {{ end }}
+    </main>
+  </body>
+</html>

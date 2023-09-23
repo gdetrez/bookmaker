@@ -35,9 +35,13 @@ func main() {
 
 	addr := ":8024"
 	log.Printf("Starting HTTP server at %s", addr)
+	mux := http.NewServeMux()
+	mux.Handle("/v2/documents", http.HandlerFunc(ServeHTTP))
+	mux.Handle("/epub/", http.HandlerFunc(Epub))
+	mux.Handle("/", http.HandlerFunc(Index))
 	srv := http.Server{
 		Addr:    addr,
-		Handler: otelhttp.NewHandler(http.HandlerFunc(ServeHTTP), "request"),
+		Handler: otelhttp.NewHandler(mux, "request"),
 	}
 	go func() {
 		err := srv.ListenAndServe()
