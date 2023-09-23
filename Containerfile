@@ -1,7 +1,12 @@
-FROM docker.io/library/golang:1.19.6 AS builder
+FROM docker.io/library/golang:1.21.1 AS builder
+
+WORKDIR /src
+
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
 
 COPY . /src
-WORKDIR /src
 RUN go build -v .
 
 FROM registry.fedoraproject.org/fedora:37
