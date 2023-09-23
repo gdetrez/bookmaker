@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"path"
 	"strings"
 
 	"github.com/bmaupin/go-epub"
+	"github.com/gdetrez/bookmaker/ctxlog"
 	"github.com/skip2/go-qrcode"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -17,6 +17,7 @@ import (
 
 func GenerateEpub(ctx context.Context, a article, outdir string) (string, error) {
 	var err error
+	log := ctxlog.LoggerFromContext(ctx)
 	filepath := path.Join(outdir, fmt.Sprintf("%s.epub", strings.ReplaceAll(a.Title, "/", "-")))
 	e := epub.NewEpub(a.Title)
 	content := AddImages(ctx, a.Content, e)
@@ -31,6 +32,7 @@ func GenerateEpub(ctx context.Context, a article, outdir string) (string, error)
 }
 
 func AddImages(ctx context.Context, content string, e *epub.Epub) string {
+	log := ctxlog.LoggerFromContext(ctx)
 	span := trace.SpanFromContext(ctx)
 	doc, err := html.Parse(strings.NewReader(content))
 	if err != nil {
