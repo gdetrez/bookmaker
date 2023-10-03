@@ -8,35 +8,35 @@ import (
 	"strings"
 
 	"github.com/bmaupin/go-epub"
-	"github.com/gdetrez/bookmaker/ctxlog"
+	"github.com/gdetrez/bookmaker/internal/catalog"
 	"github.com/skip2/go-qrcode"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/html"
 )
 
-func GenerateEpub(ctx context.Context, a article, outdir string) (string, error) {
+func GenerateEpub(ctx context.Context, entry Entry, outdir string) (string, error) {
 	var err error
-	log := ctxlog.LoggerFromContext(ctx)
-	filepath := path.Join(outdir, fmt.Sprintf("%s.epub", strings.ReplaceAll(a.Title, "/", "-")))
-	e := epub.NewEpub(a.Title)
-	content := AddImages(ctx, a.Content, e)
-	e.AddSection(fmt.Sprintf("<h1>%s</h1>", a.Title)+content, a.Title, "", "")
-	AddQRCode(ctx, a.URL, e)
+	title := fmt.Sprintf("%s %s (%s)", entry.PublishedAt.Format("06.01.02"), entry.Title, entry.Feed.Title)
+	filepath := path.Join(outdir, fmt.Sprintf("%s.epub", strings.ReplaceAll(title, "/", "-")))
+	e := epub.NewEpub(title)
+	e.SetAuthor(entry.Author)
+	content := AddImages(ctx, entry.Content, e)
+	e.AddSection(fmt.Sprintf("<h1>%s</h1>", entry.Title)+content, entry.Title, "", "")
+	AddQRCode(ctx, entry.URL, e)
 	err = e.Write(filepath)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("Epub writen to %s", filepath)
+	catalog.Printf(ctx, "Epub writen to %s", filepath)
 	return filepath, nil
 }
 
 func AddImages(ctx context.Context, content string, e *epub.Epub) string {
-	log := ctxlog.LoggerFromContext(ctx)
 	span := trace.SpanFromContext(ctx)
 	doc, err := html.Parse(strings.NewReader(content))
 	if err != nil {
-		span.RecordError(err)
+		catalog.Printf(ctx, "Error parsing html: %s", err)
 		return content
 	}
 	var f func(*html.Node)
@@ -49,7 +49,7 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 					epubSrc, err := e.AddImage(cleanedSrc, "")
 					if err != nil {
 						span.RecordError(err)
-						log.Printf("Error: couldn't add image %s: %v", cleanedSrc, err)
+						catalog.Printf(ctx, "Error: couldn't add image %s: %v", cleanedSrc, err)
 						continue
 					}
 					n.Attr[i] = html.Attribute{Namespace: a.Namespace, Key: a.Key, Val: epubSrc}
@@ -71,10 +71,9 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 }
 
 func AddQRCode(ctx context.Context, url string, e *epub.Epub) {
-	span := trace.SpanFromContext(ctx)
 	png, err := qrcode.Encode(url, qrcode.Medium, -1)
 	if err != nil {
-		span.RecordError(err)
+		catalog.Printf(ctx, "Error generating QR code: %s", err)
 		return
 	}
 	b64 := make([]byte, base64.StdEncoding.EncodedLen(len(png)))

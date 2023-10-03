@@ -21,11 +21,11 @@
         <h1>📚 Bookmaker</h1>
         {{ range .Catalog }}
         <details>
-          <summary>{{if .Err}}❌{{end}} {{ .Book.Title }}</summary>
+          <summary>{{if .Error}}❌{{end}} {{ .Title }}</summary>
           <dl>
-            <dt>Title <dd>{{ .Book.Title}}
+            <dt>Title <dd>{{ .Title}}
             {{if .File}}<dt>File<dd><a href="/epub/{{ .Id }}">📘 {{.File}}</a>{{end}}
-            {{if .Err}}<dt style="color:red">Error<dd style="color:red">{{.Err}}{{end}}
+            {{if .Error}}<dt style="color:red">Error<dd style="color:red">{{.Error}}{{end}}
             <dt>Log<dd><pre>{{ .Log }}</pre>
           </dl>
         </details>
