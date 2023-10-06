@@ -13,7 +13,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/gdetrez/bookmaker/internal/catalog"
@@ -26,7 +25,7 @@ var (
 
 func Index(w http.ResponseWriter, r *http.Request) {
 	data := struct {
-		Catalog []*catalog.Card
+		Catalog []catalog.Card
 	}{
 		Catalog: catalog.Cards(),
 	}
@@ -35,17 +34,16 @@ func Index(w http.ResponseWriter, r *http.Request) {
 }
 
 func Epub(w http.ResponseWriter, r *http.Request) {
-	sid, ok := strings.CutPrefix(r.URL.Path, "/epub/")
+	cid, ok := strings.CutPrefix(r.URL.Path, "/epub/")
 	if !ok {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
-	id, err := strconv.ParseUint(sid, 10, 64)
-	if err != nil {
+	card, found := catalog.Get(cid)
+	if !found {
 		http.Error(w, "Not Found", http.StatusNotFound)
 		return
 	}
-	card := catalog.Cards()[id]
 	f, err := os.Open(card.File())
 	defer f.Close()
 	if err != nil {
