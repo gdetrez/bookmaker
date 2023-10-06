@@ -72,7 +72,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	card.SetTitle(event.Entry.Title)
+	card.SetTitle(fmt.Sprintf("%s: %s", event.Entry.Feed.Title, event.Entry.Title))
 	file, err = SaveEntry(ctx, event.Entry)
 	card.SetFile(file)
 	if err != nil {
