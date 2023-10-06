@@ -61,6 +61,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("X-Miniflux-Event-Type") != "save_entry" {
 		return
 	}
+	dir := r.URL.Query().Get("dir")
 	var event struct {
 		Entry Entry `json:"entry"`
 	}
@@ -71,7 +72,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	card.SetTitle(fmt.Sprintf("%s: %s", event.Entry.Feed.Title, event.Entry.Title))
-	file, err = SaveEntry(ctx, event.Entry)
+	file, err = SaveEntry(ctx, event.Entry, dir)
 	card.SetFile(file)
 	if err != nil {
 		card.SetError(err)
@@ -81,7 +82,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func SaveEntry(ctx context.Context, e Entry) (string, error) {
+func SaveEntry(ctx context.Context, e Entry, dir string) (string, error) {
 	catalog.Printf(ctx, "Entry: %s (%s)", e.Title, e.URL)
 
 	tmp, err := ioutil.TempDir("", "BOOK")
@@ -95,19 +96,19 @@ func SaveEntry(ctx context.Context, e Entry) (string, error) {
 		return file, err
 	}
 
-	err = SendToReMarkable(ctx, file)
+	err = SendToReMarkable(ctx, file, dir)
 	if err != nil {
 		return file, err
 	}
 	return file, nil
 }
 
-func SendToReMarkable(ctx context.Context, path string) error {
+func SendToReMarkable(ctx context.Context, path string, dir string) error {
 	err := rmapi(ctx, "refresh")
 	if err != nil {
 		return err
 	}
-	err = rmapi(ctx, "put", path, "/@Inbox")
+	err = rmapi(ctx, "put", path, dir)
 	if err != nil {
 		return err
 	}
