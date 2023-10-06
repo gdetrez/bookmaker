@@ -10,8 +10,6 @@ import (
 	"github.com/bmaupin/go-epub"
 	"github.com/gdetrez/bookmaker/internal/catalog"
 	"github.com/skip2/go-qrcode"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/html"
 )
 
@@ -33,7 +31,6 @@ func GenerateEpub(ctx context.Context, entry Entry, outdir string) (string, erro
 }
 
 func AddImages(ctx context.Context, content string, e *epub.Epub) string {
-	span := trace.SpanFromContext(ctx)
 	doc, err := html.Parse(strings.NewReader(content))
 	if err != nil {
 		catalog.Printf(ctx, "Error parsing html: %s", err)
@@ -48,15 +45,11 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 					cleanedSrc := strings.Split(originalSrc, "?")[0] // epub don't like file name with a query part…
 					epubSrc, err := e.AddImage(cleanedSrc, "")
 					if err != nil {
-						span.RecordError(err)
 						catalog.Printf(ctx, "Error: couldn't add image %s: %v", cleanedSrc, err)
 						continue
 					}
 					n.Attr[i] = html.Attribute{Namespace: a.Namespace, Key: a.Key, Val: epubSrc}
-					span.AddEvent(fmt.Sprintf("Added image %s", epubSrc), trace.WithAttributes(
-						attribute.String("src.original", originalSrc),
-						attribute.String("src.cleaned", cleanedSrc),
-						attribute.String("src.epub", epubSrc)))
+					catalog.Printf(ctx, "Added image %s as %s", originalSrc, epubSrc)
 				}
 			}
 		}
