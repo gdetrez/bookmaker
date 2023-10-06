@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sync"
 )
 
 type ctxKey int
@@ -34,16 +35,34 @@ func (c *Card) SetFile(f string)  { c.file = f }
 func (c *Card) SetError(e error)  { c.err = e }
 
 var catalog struct {
+	mu    sync.Mutex
 	cards []*Card
 }
 
-func Cards() []*Card {
-	// TODO: lock and copy
-	return catalog.cards
+func Cards() []Card {
+	catalog.mu.Lock()
+	defer catalog.mu.Unlock()
+	result := make([]Card, 0, len(catalog.cards))
+	for _, c := range catalog.cards {
+		result = append(result, *c)
+	}
+	return result
+}
+
+func Get(id string) (Card, bool) {
+	catalog.mu.Lock()
+	defer catalog.mu.Unlock()
+	for _, c := range catalog.cards {
+		if c.id == id {
+			return *c, true
+		}
+	}
+	return Card{}, false
 }
 
 func StartCard(ctx context.Context) (context.Context, *Card) {
-	// TODO: lock
+	catalog.mu.Lock()
+	defer catalog.mu.Unlock()
 	card := new(Card)
 	card.id = fmt.Sprintf("%d", len(catalog.cards))
 	catalog.cards = append(catalog.cards, card)
