@@ -60,6 +60,9 @@ func Epub(w http.ResponseWriter, r *http.Request) {
 func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var file string
 	var err error
+	if r.Header.Get("X-Miniflux-Event-Type") != "save_entry" {
+		return
+	}
 	var event struct {
 		Entry Entry `json:"entry"`
 	}
