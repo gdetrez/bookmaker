@@ -1,0 +1,4 @@
+#!/bin/bash
+set -eux
+./build
+kubectl -n default delete pod -l service=bookmaker
