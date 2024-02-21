@@ -2,14 +2,18 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/base64"
 	"fmt"
+	"net/http"
+	"os"
 	"path"
 	"strings"
 
 	"github.com/bmaupin/go-epub"
 	"github.com/gdetrez/bookmaker/internal/catalog"
 	"github.com/skip2/go-qrcode"
+	"github.com/sunshineplan/imgconv"
 	"golang.org/x/net/html"
 )
 
@@ -42,10 +46,14 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 			for i, a := range n.Attr {
 				if a.Key == "src" {
 					originalSrc := a.Val
-					cleanedSrc := strings.Split(originalSrc, "?")[0] // epub don't like file name with a query part…
-					epubSrc, err := e.AddImage(cleanedSrc, "")
+					path, err := downloadImage(ctx, originalSrc)
 					if err != nil {
-						catalog.Printf(ctx, "Error: couldn't add image %s: %v", cleanedSrc, err)
+						catalog.Printf(ctx, "Error downloading image: %v", err)
+						continue
+					}
+					epubSrc, err := e.AddImage(path, "")
+					if err != nil {
+						catalog.Printf(ctx, "Error: couldn't add image %s: %v", path, err)
 						continue
 					}
 					n.Attr[i] = html.Attribute{Namespace: a.Namespace, Key: a.Key, Val: epubSrc}
@@ -61,6 +69,36 @@ func AddImages(ctx context.Context, content string, e *epub.Epub) string {
 	var b strings.Builder
 	html.Render(&b, doc)
 	return b.String()
+}
+
+func downloadImage(ctx context.Context, url string) (string, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	ct := resp.Header.Get("content-type")
+	catalog.Printf(ctx, "Downloading image: %s (%s)", url, ct)
+
+	img, err := imgconv.Decode(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	filename := fmt.Sprintf("%x.jpg", md5.Sum([]byte(url)))
+	file, err := os.CreateTemp("", filename)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+
+	err = imgconv.Write(file, img, &imgconv.FormatOption{Format: imgconv.JPEG})
+	if err != nil {
+		return "", err
+	}
+
+	catalog.Printf(ctx, "JPEG image written to %s", file.Name())
+	return file.Name(), nil
 }
 
 func AddQRCode(ctx context.Context, url string, e *epub.Epub) {
