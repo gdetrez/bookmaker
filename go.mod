@@ -1,6 +1,8 @@
 module github.com/gdetrez/bookmaker
 
-go 1.18
+go 1.21
+
+toolchain go1.21.7
 
 require (
 	github.com/bmaupin/go-epub v1.0.1
