@@ -8,7 +8,7 @@ require (
 	github.com/bmaupin/go-epub v1.1.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/sunshineplan/imgconv v1.1.9
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.24.0
 )
 
 require (
