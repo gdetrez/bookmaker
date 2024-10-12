@@ -16,4 +16,4 @@ RUN curl -Lo - https://github.com/juruen/rmapi/releases/download/v0.0.25/rmapi-l
 
 COPY --from=builder /src/bookmaker /bin/
 
-CMD ["bookmaker"]
+CMD ["bookmaker", "startserver"]
